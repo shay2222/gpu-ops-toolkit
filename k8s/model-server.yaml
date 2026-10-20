@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-server
+  labels:
+    app: llm-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: llm-server
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: llm-server
+    spec:
+      containers:
+        - name: server
+          image: registry.example.com/llm-server:1.0.0   # placeholder image
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: llm-server-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: llm-server
